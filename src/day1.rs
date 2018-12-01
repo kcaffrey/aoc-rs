@@ -20,8 +20,7 @@ pub fn solve_part2(input: &[i32]) -> i32 {
         .scan(0, |f, c| {
             *f = *f + c;
             Some(*f)
-        }).filter_map(|f| seen.replace(f))
-        .next()
+        }).find(|&f| !seen.insert(f))
         .unwrap()
 }
 
