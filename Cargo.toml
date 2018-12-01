@@ -2,6 +2,7 @@
 name = "aoc"
 version = "0.1.0"
 authors = ["Kevin Caffrey <kevin@yext.com>"]
+publish = false
 
 [dependencies]
 aoc-runner = "0.1.0"
