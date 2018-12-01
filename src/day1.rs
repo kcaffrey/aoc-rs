@@ -13,15 +13,15 @@ pub fn solve_part1(input: &[i32]) -> i32 {
 #[aoc(day1, part2)]
 pub fn solve_part2(input: &[i32]) -> i32 {
     let mut seen = HashSet::new();
-    seen.insert(0);
+    let mut freq = 0;
+    //seen.insert(freq);
     input
         .iter()
         .cycle()
-        .scan(0, |f, c| {
-            *f = *f + c;
-            Some(*f)
-        }).find(|&f| !seen.insert(f))
-        .unwrap()
+        .find_map(|c| {
+            freq += c;
+            seen.replace(freq)
+        }).unwrap()
 }
 
 #[cfg(test)]
