@@ -14,7 +14,7 @@ pub fn solve_part1(input: &[i32]) -> i32 {
 pub fn solve_part2(input: &[i32]) -> i32 {
     let mut seen = HashSet::new();
     let mut freq = 0;
-    //seen.insert(freq);
+    seen.insert(freq);
     input
         .iter()
         .cycle()
