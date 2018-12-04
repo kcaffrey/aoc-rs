@@ -1,7 +1,7 @@
 [package]
 name = "aoc"
 version = "0.1.0"
-authors = ["Kevin Caffrey <kevin@yext.com>"]
+authors = ["Kevin Caffrey <kcaffrey@gmail.com>"]
 publish = false
 
 [dependencies]
