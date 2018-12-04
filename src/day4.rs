@@ -33,7 +33,7 @@ pub fn parse(input: &str) -> Vec<ShiftLog> {
                     guard_id: guard_id.as_str().parse().unwrap(),
                 }
             } else {
-                match caps.get(2)?.as_str() {
+                match &caps[2] {
                     "wakes up" => WakeUp,
                     "falls asleep" => FallAsleep,
                     _ => unreachable!(),
