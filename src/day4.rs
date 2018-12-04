@@ -21,7 +21,7 @@ pub fn parse(input: &str) -> Vec<ShiftLog> {
     let re = Regex::new(
         r"^\[\d{4}-\d{2}-\d{2} \d{2}:(\d{2})\] (wakes up|falls asleep|Guard #(\d+) begins shift)$",
     ).unwrap();
-    let mut lines = input.lines().collect::<Vec<&str>>();
+    let mut lines: Vec<_> = input.lines().collect();
     lines.sort();
     lines
         .iter()
@@ -46,13 +46,13 @@ pub fn parse(input: &str) -> Vec<ShiftLog> {
 fn solve_with_strat(logs: &[ShiftLog], strat: impl Fn(&HashMap<u32, u32>) -> u32) -> u32 {
     let mut guard_id = 0;
     let mut sleep_time = 0;
-    let mut asleep_minutes: HashMap<u32, HashMap<u32, u32>> = HashMap::new();
+    let mut asleep_minutes = HashMap::new();
     for log in logs {
         match log.event {
             BeginShift { guard_id: id } => guard_id = id,
             FallAsleep => sleep_time = log.minute,
             WakeUp => {
-                let mut guard = asleep_minutes.entry(guard_id).or_default();
+                let guard: &mut HashMap<_, _> = asleep_minutes.entry(guard_id).or_default();
                 for minute in sleep_time..log.minute {
                     let entry = guard.entry(minute).or_default();
                     *entry += 1;
@@ -60,16 +60,16 @@ fn solve_with_strat(logs: &[ShiftLog], strat: impl Fn(&HashMap<u32, u32>) -> u32
             }
         }
     }
-    let guard: &u32 = asleep_minutes
+    let guard = asleep_minutes
         .iter()
         .max_by_key(|(_, minutes)| strat(minutes))
-        .unwrap()
-        .0;
+        .map(|(guard_id, _)| guard_id)
+        .unwrap();
     let max_minute = asleep_minutes[guard]
         .iter()
         .max_by_key(|(_, &count)| count)
-        .unwrap()
-        .0;
+        .map(|(guard_id, _)| guard_id)
+        .unwrap();
     guard * max_minute
 }
 
