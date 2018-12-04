@@ -43,7 +43,7 @@ pub fn parse(input: &str) -> Vec<ShiftLog> {
         }).collect()
 }
 
-fn aggregate_logs(logs: &[ShiftLog]) -> HashMap<u32, HashMap<u32, u32>> {
+fn solve_with_strat(logs: &[ShiftLog], strat: impl Fn(&HashMap<u32, u32>) -> u32) -> u32 {
     let mut guard_id = 0;
     let mut sleep_time = 0;
     let mut asleep_minutes: HashMap<u32, HashMap<u32, u32>> = HashMap::new();
@@ -60,39 +60,27 @@ fn aggregate_logs(logs: &[ShiftLog]) -> HashMap<u32, HashMap<u32, u32>> {
             }
         }
     }
-    asleep_minutes
+    let guard: &u32 = asleep_minutes
+        .iter()
+        .max_by_key(|(_, minutes)| strat(minutes))
+        .unwrap()
+        .0;
+    let max_minute = asleep_minutes[guard]
+        .iter()
+        .max_by_key(|(_, &count)| count)
+        .unwrap()
+        .0;
+    guard * max_minute
 }
 
 #[aoc(day4, part1)]
 fn solve_part1(logs: &[ShiftLog]) -> u32 {
-    let asleep_minutes = aggregate_logs(logs);
-    let guard: &u32 = asleep_minutes
-        .iter()
-        .max_by_key(|(_, minutes)| minutes.values().sum::<u32>())
-        .unwrap()
-        .0;
-    let max_minute = asleep_minutes[guard]
-        .iter()
-        .max_by_key(|(_, &count)| count)
-        .unwrap()
-        .0;
-    guard * max_minute
+    solve_with_strat(logs, |minutes| minutes.values().sum::<u32>())
 }
 
 #[aoc(day4, part2)]
 fn solve_part2(logs: &[ShiftLog]) -> u32 {
-    let asleep_minutes = aggregate_logs(logs);
-    let guard: &u32 = asleep_minutes
-        .iter()
-        .max_by_key(|(_, minutes)| minutes.values().max())
-        .unwrap()
-        .0;
-    let max_minute = asleep_minutes[guard]
-        .iter()
-        .max_by_key(|(_, &count)| count)
-        .unwrap()
-        .0;
-    guard * max_minute
+    solve_with_strat(logs, |minutes| minutes.values().max().unwrap().to_owned())
 }
 
 #[cfg(test)]
