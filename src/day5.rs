@@ -24,7 +24,7 @@ pub fn parse(input: &str) -> Vec<Unit> {
     input.trim().chars().map(Unit::from).collect()
 }
 
-fn react(polymer: &[Unit]) -> Vec<&Unit> {
+fn react<'a>(polymer: &[&'a Unit]) -> Vec<&'a Unit> {
     let mut result: Vec<&Unit> = Vec::new();
     for unit in polymer {
         let reacts = if let Some(other) = result.last() {
@@ -43,14 +43,15 @@ fn react(polymer: &[Unit]) -> Vec<&Unit> {
 
 #[aoc(day5, part1)]
 fn solve_part1(polymer: &[Unit]) -> usize {
-    react(polymer).len()
+    react(&polymer.iter().collect::<Vec<_>>()).len()
 }
 
 #[aoc(day5, part2)]
 fn solve_part2(polymer: &[Unit]) -> usize {
     let mut best = polymer.len();
+    let reacted: Vec<_> = react(&polymer.iter().collect::<Vec<_>>());
     for c in "abcdefghijklmnopqrstuvwxyz".chars() {
-        let reduced: Vec<_> = polymer.iter().filter(|u| u.kind != c).cloned().collect();
+        let reduced: Vec<_> = reacted.iter().filter(|u| u.kind != c).cloned().collect();
         let cur = react(&reduced).len();
         if cur < best {
             best = cur;
