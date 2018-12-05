@@ -25,22 +25,18 @@ pub fn parse(input: &str) -> Vec<Unit> {
 }
 
 fn react(polymer: &[Unit]) -> Vec<&Unit> {
-    // Note: this is horribly inefficient. It should be possible to do this in-place and avoid all
-    // the drain calls.
-    let mut result: Vec<_> = polymer.iter().collect();
-    let mut done = false;
-    while result.len() > 0 && !done {
-        let mut i = 0;
-        let mut reacted = false;
-        while i < result.len() - 1 {
-            if result[i].reacts(result[i + 1]) {
-                result.drain(i..=i + 1);
-                reacted = true;
-                break;
-            }
-            i += 1;
+    let mut result: Vec<&Unit> = Vec::new();
+    for unit in polymer {
+        let reacts = if let Some(other) = result.last() {
+            unit.reacts(other)
+        } else {
+            false
+        };
+        if reacts {
+            result.pop();
+        } else {
+            result.push(unit);
         }
-        done = !reacted;
     }
     result
 }
