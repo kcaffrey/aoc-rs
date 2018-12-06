@@ -1,4 +1,6 @@
-#[derive(Debug, PartialEq, Eq, Clone)]
+use std::borrow::Borrow;
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct Unit {
     kind: char,
     polarity: bool,
@@ -24,18 +26,28 @@ pub fn parse(input: &str) -> Vec<Unit> {
     input.trim().chars().map(Unit::from).collect()
 }
 
-fn react<'a>(polymer: &[&'a Unit]) -> Vec<&'a Unit> {
-    let mut result: Vec<&Unit> = Vec::new();
+fn react<T: Borrow<Unit>>(polymer: &[T], skip_char: Option<char>) -> Vec<&Unit> {
+    let mut result: Vec<&Unit> = Vec::with_capacity(polymer.len());
     for unit in polymer {
+        // Skip this unit if it matches the character we are testing to remove.
+        if let Some(ch) = skip_char {
+            if ch == unit.borrow().kind {
+                continue;
+            }
+        }
+
+        // Check to see if the current unit reacts with the one on top of the stack.
         let reacts = if let Some(other) = result.last() {
-            unit.reacts(other)
+            unit.borrow().reacts(other)
         } else {
             false
         };
+
+        // If it reacts, remove the top item on the stack, otherwise push this unit.
         if reacts {
             result.pop();
         } else {
-            result.push(unit);
+            result.push(unit.borrow());
         }
     }
     result
@@ -43,16 +55,15 @@ fn react<'a>(polymer: &[&'a Unit]) -> Vec<&'a Unit> {
 
 #[aoc(day5, part1)]
 fn solve_part1(polymer: &[Unit]) -> usize {
-    react(&polymer.iter().collect::<Vec<_>>()).len()
+    react(polymer, None).len()
 }
 
 #[aoc(day5, part2)]
 fn solve_part2(polymer: &[Unit]) -> usize {
     let mut best = polymer.len();
-    let reacted: Vec<_> = react(&polymer.iter().collect::<Vec<_>>());
+    let reacted = react(polymer, None);
     for c in "abcdefghijklmnopqrstuvwxyz".chars() {
-        let reduced: Vec<_> = reacted.iter().filter(|u| u.kind != c).cloned().collect();
-        let cur = react(&reduced).len();
+        let cur = react(&reacted, Some(c)).len();
         if cur < best {
             best = cur;
         }
