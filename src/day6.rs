@@ -2,7 +2,7 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub struct Coord {
     x: i16,
     y: i16,
@@ -44,11 +44,11 @@ pub fn solve_part1(input: &[Coord]) -> u32 {
                 }
             }
             if let Some(closest) = closest {
-                if (x == minx || y == miny || x == maxx || y == maxy)
-                    && !infinites.contains(&closest)
-                {
-                    infinites.insert(closest);
-                    counts.remove(&closest);
+                if x == minx || y == miny || x == maxx || y == maxy {
+                    if !infinites.contains(&closest) {
+                        infinites.insert(closest);
+                        counts.remove(&closest);
+                    }
                 } else {
                     *counts.entry(closest).or_default() += 1;
                 }
