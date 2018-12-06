@@ -64,7 +64,7 @@ fn solve_part2(polymer: &[Unit]) -> usize {
     "abcdefghijklmnopqrstuvwxyz"
         .par_chars()
         .map(|c| react(&reacted, Some(c)).len())
-        .max()
+        .min()
         .unwrap()
 }
 
