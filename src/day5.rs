@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use std::borrow::Borrow;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -23,7 +24,7 @@ impl From<char> for Unit {
 
 #[aoc_generator(day5)]
 pub fn parse(input: &str) -> Vec<Unit> {
-    input.trim().chars().map(Unit::from).collect()
+    input.trim().par_chars().map(Unit::from).collect()
 }
 
 fn react<T: Borrow<Unit>>(polymer: &[T], skip_char: Option<char>) -> Vec<&Unit> {
@@ -60,15 +61,12 @@ fn solve_part1(polymer: &[Unit]) -> usize {
 
 #[aoc(day5, part2)]
 fn solve_part2(polymer: &[Unit]) -> usize {
-    let mut best = polymer.len();
     let reacted = react(polymer, None);
-    for c in "abcdefghijklmnopqrstuvwxyz".chars() {
-        let cur = react(&reacted, Some(c)).len();
-        if cur < best {
-            best = cur;
-        }
-    }
-    best
+    "abcdefghijklmnopqrstuvwxyz"
+        .par_chars()
+        .map(|c| react(&reacted, Some(c)).len())
+        .max()
+        .unwrap()
 }
 
 #[cfg(test)]
