@@ -1,7 +1,6 @@
 use rayon::prelude::*;
-use std::borrow::Borrow;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Unit {
     kind: char,
     polarity: bool,
@@ -27,19 +26,19 @@ pub fn parse(input: &str) -> Vec<Unit> {
     input.trim().par_chars().map(Unit::from).collect()
 }
 
-fn react<T: Borrow<Unit>>(polymer: &[T], skip_char: Option<char>) -> Vec<&Unit> {
-    let mut result: Vec<&Unit> = Vec::with_capacity(polymer.len());
+fn react(polymer: &[Unit], skip_char: Option<char>) -> Vec<Unit> {
+    let mut result: Vec<Unit> = Vec::with_capacity(polymer.len());
     for unit in polymer {
         // Skip this unit if it matches the character we are testing to remove.
         if let Some(ch) = skip_char {
-            if ch == unit.borrow().kind {
+            if ch == unit.kind {
                 continue;
             }
         }
 
         // Check to see if the current unit reacts with the one on top of the stack.
         let reacts = if let Some(other) = result.last() {
-            unit.borrow().reacts(other)
+            unit.reacts(other)
         } else {
             false
         };
@@ -48,7 +47,7 @@ fn react<T: Borrow<Unit>>(polymer: &[T], skip_char: Option<char>) -> Vec<&Unit> 
         if reacts {
             result.pop();
         } else {
-            result.push(unit.borrow());
+            result.push(unit.clone());
         }
     }
     result
