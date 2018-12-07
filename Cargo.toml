@@ -3,6 +3,7 @@ name = "aoc"
 version = "0.1.0"
 authors = ["Kevin Caffrey <kcaffrey@gmail.com>"]
 publish = false
+edition = "2018"
 
 [dependencies]
 aoc-runner = "0.2"
