@@ -98,19 +98,19 @@ pub fn solve_part2(input: &[(char, char)]) -> u32 {
     let mut open_threads = 0;
     let mut cur_time = 0;
     while !graph.available.is_empty() || open_threads > 0 {
-        for index in 0..threads.len() {
-            if let Some((time, ch)) = threads[index] {
+        for thread in &mut threads {
+            if let Some((time, ch)) = *thread {
                 if time <= cur_time {
                     graph.complete(ch);
-                    threads[index] = None;
+                    *thread = None;
                     open_threads -= 1;
                 }
             }
         }
-        for index in 0..threads.len() {
-            if threads[index].is_none() {
+        for thread in &mut threads {
+            if thread.is_none() {
                 if let Some(ch) = graph.pop() {
-                    threads[index] = Some((cur_time + 60 + u32::from((ch as u8) - b'A' + 1), ch));
+                    *thread = Some((cur_time + 60 + u32::from((ch as u8) - b'A' + 1), ch));
                     open_threads += 1;
                 }
             }
