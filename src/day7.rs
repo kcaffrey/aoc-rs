@@ -98,11 +98,11 @@ pub fn solve_part2(input: &[(char, char)]) -> u32 {
     let mut open_threads = 0;
     let mut cur_time = 0;
     while !graph.available.is_empty() || open_threads > 0 {
-        for worker in 0..5 {
-            if let Some((time, ch)) = threads[worker] {
+        for index in 0..threads.len() {
+            if let Some((time, ch)) = threads[index] {
                 if time <= cur_time {
                     graph.complete(ch);
-                    threads[worker] = None;
+                    threads[index] = None;
                     open_threads -= 1;
                 }
             }
