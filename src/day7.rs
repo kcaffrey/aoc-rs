@@ -74,13 +74,17 @@ impl DependencyGraph {
             }
         }
     }
+
+    fn pop(&mut self) -> Option<char> {
+        self.available.pop().map(|c| c.0)
+    }
 }
 
 #[aoc(day7, part1)]
 pub fn solve_part1(input: &[(char, char)]) -> String {
     let mut graph = DependencyGraph::from(input);
     let mut ret: Vec<char> = Vec::new();
-    while let Some(Reverse(ch)) = graph.available.pop() {
+    while let Some(ch) = graph.pop() {
         ret.push(ch);
         graph.complete(ch);
     }
@@ -105,7 +109,7 @@ pub fn solve_part2(input: &[(char, char)]) -> u32 {
         }
         for index in 0..threads.len() {
             if threads[index].is_none() {
-                if let Some(Reverse(ch)) = graph.available.pop() {
+                if let Some(ch) = graph.pop() {
                     threads[index] = Some((cur_time + 60 + u32::from((ch as u8) - b'A' + 1), ch));
                     open_threads += 1;
                 }
