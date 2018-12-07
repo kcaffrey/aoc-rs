@@ -103,23 +103,17 @@ pub fn solve_part2(input: &[(char, char)]) -> u32 {
                 }
             }
         }
-        let workers: Vec<_> = threads
-            .iter()
-            .enumerate()
-            .filter(|(_, w)| w.is_none())
-            .filter_map(|(w, _)| match graph.available.pop() {
-                Some(Reverse(ch)) => Some((w, ch)),
-                None => None,
-            })
-            .collect();
-        for (worker, ch) in workers {
-            threads[worker] = Some((cur_time + 61 + (((ch as u8) - b'A') as u32), ch));
-            open_threads += 1;
+        for index in 0..threads.len() {
+            if threads[index].is_none() {
+                if let Some(Reverse(ch)) = graph.available.pop() {
+                    threads[index] = Some((cur_time + 60 + u32::from((ch as u8) - b'A' + 1), ch));
+                    open_threads += 1;
+                }
+            }
         }
         cur_time = threads
             .iter()
-            .filter_map(|o| *o)
-            .map(|w| w.0)
+            .filter_map(|o| if let Some((t, _)) = o { Some(*t) } else { None })
             .min()
             .unwrap_or(cur_time);
     }
