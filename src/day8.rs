@@ -9,58 +9,102 @@ fn parse(input: &str) -> Vec<u8> {
 
 #[aoc(day8, part1)]
 fn solve_part1(input: &[u8]) -> u32 {
-    fn sum_nodes(n: u16, slice: &[u8]) -> (u32, u16) {
-        let mut start = 0;
-        let mut sum = 0;
-        for _ in 0..n {
-            let num_children = slice[start] as u16;
-            let num_meta = slice[start + 1];
-            let (subtotal, skip) = sum_nodes(num_children, &slice[start + 2..]);
-            sum += subtotal;
-            start += 2 + usize::from(skip);
-
-            sum += slice[start..start + usize::from(num_meta)]
-                .iter()
-                .map(|&m| m as u32)
-                .sum::<u32>();
-            start += usize::from(num_meta);
+    fn sum_metas(slice: &[u8]) -> (u32, usize) {
+        let num_children = slice[0];
+        let num_meta = slice[1] as usize;
+        let mut index = 2;
+        let mut total = 0;
+        for _ in 0..num_children {
+            let (subtotal, skip) = sum_metas(&slice[index..]);
+            index += skip;
+            total += subtotal;
         }
-        (sum, start as u16)
+        total += slice[index..index + num_meta]
+            .iter()
+            .map(|&m| m as u32)
+            .sum::<u32>();
+        (total, index + num_meta)
     }
-    sum_nodes(1, input).0
+    sum_metas(input).0
 }
 
 #[aoc(day8, part2)]
 fn solve_part2(input: &[u8]) -> u32 {
-    fn get_values(n: u16, slice: &[u8]) -> (Vec<u32>, usize) {
-        let mut start = 0;
-        let mut values = Vec::new();
-        for _ in 0..n {
-            let num_children = slice[start] as u16;
-            let num_meta = slice[start + 1] as usize;
-            let (child_values, skip) = get_values(num_children, &slice[start + 2..]);
-            start += 2 + skip;
-            if num_children == 0 {
-                values.push(
-                    slice[start..start + num_meta]
-                        .iter()
-                        .map(|&m| m as u32)
-                        .sum::<u32>(),
-                );
-            } else {
-                values.push(
-                    slice[start..start + num_meta]
-                        .iter()
-                        .map(|&m| child_values.get(m as usize - 1).unwrap_or(&0))
-                        .sum(),
-                );
-            }
-            start += num_meta;
+    fn get_value(slice: &[u8]) -> (u32, usize) {
+        let num_children = slice[0];
+        let num_meta = slice[1] as usize;
+        let mut i = 2;
+
+        // No children, compute sum of metas
+        if num_children == 0 {
+            let value = slice[i..i + num_meta].iter().map(|&m| m as u32).sum();
+            return (value, i + num_meta);
         }
-        (values, start)
+
+        // Otherwise find child values and use our metas to index into those and get the sum
+        let mut child_values = Vec::with_capacity(num_children as usize);
+        for _ in 0..num_children {
+            let (value, skip) = get_value(&slice[i..]);
+            i += skip;
+            child_values.push(value);
+        }
+        let value = slice[i..i + num_meta]
+            .iter()
+            .map(|&m| child_values.get(m as usize - 1).unwrap_or(&0))
+            .sum();
+        (value, i + num_meta)
     }
-    let (values, _) = get_values(1, input);
-    values[0]
+    get_value(input).0
+}
+
+struct Node<'a> {
+    children: Vec<Node<'a>>,
+    meta: &'a [u8],
+}
+
+fn build_tree(input: &[u8]) -> (Node, usize) {
+    let num_children = input[0];
+    let num_meta = input[1] as usize;
+    let mut children = Vec::with_capacity(num_children as usize);
+    let mut index = 2;
+    for _ in 0..num_children {
+        let (child, skip) = build_tree(&input[index..]);
+        children.push(child);
+        index += skip;
+    }
+    (
+        Node {
+            children,
+            meta: &input[index..index + num_meta],
+        },
+        index + num_meta,
+    )
+}
+
+#[aoc(day8, part1, tree)]
+fn solve_part1_tree(input: &[u8]) -> u16 {
+    fn sum_metas(node: &Node) -> u16 {
+        let mut sum = node.children.iter().map(sum_metas).sum();
+        sum += node.meta.iter().map(|&m| m as u16).sum::<u16>();
+        sum
+    }
+    sum_metas(&build_tree(input).0)
+}
+
+#[aoc(day8, part2, tree)]
+fn solve_part2_tree(input: &[u8]) -> u16 {
+    fn get_value(node: &Node) -> u16 {
+        if node.children.len() == 0 {
+            node.meta.iter().map(|&m| m as u16).sum()
+        } else {
+            let child_values = node.children.iter().map(get_value).collect::<Vec<_>>();
+            node.meta
+                .iter()
+                .map(|&m| child_values.get(m as usize - 1).unwrap_or(&0))
+                .sum()
+        }
+    }
+    get_value(&build_tree(input).0)
 }
 
 #[cfg(test)]
@@ -80,10 +124,12 @@ mod test {
     #[test]
     fn test_part1() {
         assert_eq!(138, solve_part1(&parse(INPUT)));
+        assert_eq!(138, solve_part1_tree(&parse(INPUT)));
     }
 
     #[test]
     fn test_part2() {
         assert_eq!(66, solve_part2(&parse(INPUT)));
+        assert_eq!(66, solve_part2_tree(&parse(INPUT)));
     }
 }
