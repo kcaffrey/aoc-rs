@@ -21,7 +21,8 @@ pub fn solve_part2(input: &[i32]) -> i32 {
         .find_map(|c| {
             freq += c;
             seen.replace(freq)
-        }).unwrap()
+        })
+        .unwrap()
 }
 
 #[cfg(test)]

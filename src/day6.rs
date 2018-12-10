@@ -19,7 +19,8 @@ pub fn parse(input: &str) -> Vec<Coord> {
                 x: caps[1].parse().unwrap(),
                 y: caps[2].parse().unwrap(),
             })
-        }).collect()
+        })
+        .collect()
 }
 
 #[aoc(day6, part1)]

@@ -37,7 +37,8 @@ pub fn parse(input: &str) -> Vec<Claim> {
                 right,
                 bottom,
             })
-        }).collect()
+        })
+        .collect()
 }
 
 #[aoc(day3, part1)]

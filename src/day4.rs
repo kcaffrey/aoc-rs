@@ -20,7 +20,8 @@ use self::Event::*;
 pub fn parse(input: &str) -> Vec<ShiftLog> {
     let re = Regex::new(
         r"^\[\d{4}-\d{2}-\d{2} \d{2}:(\d{2})\] (wakes up|falls asleep|Guard #(\d+) begins shift)$",
-    ).unwrap();
+    )
+    .unwrap();
     let mut lines: Vec<_> = input.lines().collect();
     lines.sort();
     lines
@@ -40,7 +41,8 @@ pub fn parse(input: &str) -> Vec<ShiftLog> {
                 }
             };
             Some(ShiftLog { minute, event })
-        }).collect()
+        })
+        .collect()
 }
 
 fn solve_with_strat(logs: &[ShiftLog], strat: impl Fn(&HashMap<u32, u32>) -> u32) -> u32 {
