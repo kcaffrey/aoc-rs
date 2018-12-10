@@ -50,16 +50,15 @@ fn plot_points(points: &[Point]) -> String {
     let maxy = points.iter().map(|p| p.y).max().unwrap();
     let mut sky = vec![vec![' '; (maxx - minx + 1) as usize]; (maxy - miny + 1) as usize];
     for point in points {
-        sky[(point.y - miny) as usize][(point.x - minx) as usize] = '#';
+        sky[(point.y - miny) as usize][(point.x - minx) as usize] = '▓';
     }
-    (vec!["\n".to_owned()])
-        .into_iter()
-        .chain(
-            sky.into_iter()
-                .map(|line| line.into_iter().collect::<String>()),
-        )
-        .collect::<Vec<_>>()
-        .join("\n")
+    format!(
+        "\n\n{}\n",
+        sky.into_iter()
+            .map(|line| line.into_iter().collect())
+            .collect::<Vec<String>>()
+            .join("\n")
+    )
 }
 
 #[aoc(day10, part1)]
