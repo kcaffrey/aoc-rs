@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use std::cmp;
 use std::convert::AsRef;
 use std::fmt;
@@ -28,12 +29,14 @@ fn compute_power(x: u32, y: u32, serial: u32) -> PowerLevel {
 
 impl FuelGrid {
     fn with_serial(serial: &SerialNumber) -> Self {
-        let mut grid = vec![vec![PowerLevel(0); 300]; 300];
-        for x in 1..=300 {
-            for y in 1..=300 {
-                grid[(y - 1) as usize][(x - 1) as usize] = compute_power(x, y, serial.0);
-            }
-        }
+        let grid = (1u32..301)
+            .into_par_iter()
+            .map(|y| {
+                (1..=300)
+                    .map(move |x| compute_power(x, y, serial.0))
+                    .collect()
+            })
+            .collect();
         FuelGrid(grid)
     }
 
@@ -59,31 +62,33 @@ macro_rules! coord {
 #[aoc(day11, part1)]
 fn solve_part1(input: &SerialNumber) -> Coordinate {
     let grid = FuelGrid::with_serial(input);
-    let mut max_power = 0;
-    let mut max_coordinate = coord!(1, 1);
-    for x in 1..=298 {
-        for y in 1..=298 {
-            let mut power = 0;
-            for i in x..x + 3 {
-                for j in y..y + 3 {
-                    power += grid.power_at(coord!(i, j)).0;
+    (1u32..299)
+        .into_par_iter()
+        .map(|x| {
+            let mut max_power = 0;
+            let mut max_coordinate = coord!(1, 1);
+            for y in 1..=298 {
+                let mut power = 0;
+                for i in x..x + 3 {
+                    for j in y..y + 3 {
+                        power += grid.power_at(coord!(i, j)).0;
+                    }
+                }
+                if power > max_power {
+                    max_coordinate = coord!(x, y);
+                    max_power = power;
                 }
             }
-            if power > max_power {
-                max_coordinate = coord!(x, y);
-                max_power = power;
-            }
-        }
-    }
-    max_coordinate
+            (max_coordinate, max_power)
+        })
+        .max_by_key(|(_, power)| *power)
+        .unwrap()
+        .0
 }
 
 #[aoc(day11, part2)]
 fn solve_part2(input: &SerialNumber) -> String {
     let grid = FuelGrid::with_serial(input);
-    let mut max_power = 0;
-    let mut max_size = 0;
-    let mut max_coordinate = coord!(1, 1);
     let mut area_sums = vec![vec![0; 301]; 301];
     for x in 1..=300 {
         for y in 1..=300 {
@@ -92,20 +97,28 @@ fn solve_part2(input: &SerialNumber) -> String {
             area_sums[y][x] = sum;
         }
     }
-    for x in 1..=300 {
-        for y in 1..=300 {
-            for size in 1..=cmp::min(300 - x + 1, 300 - y + 1) {
-                let (x1, y1) = (x + size - 1, y + size - 1);
-                let power = area_sums[y1][x1] - area_sums[y1][x - 1] - area_sums[y - 1][x1]
-                    + area_sums[y - 1][x - 1];
-                if power > max_power {
-                    max_power = power;
-                    max_size = size;
-                    max_coordinate = coord!(x, y);
+    let (max_coordinate, max_size, _) = (1usize..301)
+        .into_par_iter()
+        .map(|x| {
+            let mut max_power = 0;
+            let mut max_size = 0;
+            let mut max_coordinate = coord!(1, 1);
+            for y in 1..=300 {
+                for size in 1..=cmp::min(300 - x + 1, 300 - y + 1) {
+                    let (x1, y1) = (x + size - 1, y + size - 1);
+                    let power = area_sums[y1][x1] - area_sums[y1][x - 1] - area_sums[y - 1][x1]
+                        + area_sums[y - 1][x - 1];
+                    if power > max_power {
+                        max_power = power;
+                        max_size = size;
+                        max_coordinate = coord!(x, y);
+                    }
                 }
             }
-        }
-    }
+            (max_coordinate, max_size, max_power)
+        })
+        .max_by_key(|(_, _, power)| *power)
+        .unwrap();
     format!("{},{},{}", max_coordinate.x, max_coordinate.y, max_size).to_owned()
 }
 
