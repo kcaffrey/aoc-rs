@@ -79,7 +79,6 @@ impl Simulation {
     }
 
     pub fn update(&mut self) {
-        self.next.0.clear();
         for index in self.min - 2..=self.max + 2 {
             let cur_exists = self.current.0.contains_key(&index);
             let val = self.rules[self.pattern_at(index) as usize];
