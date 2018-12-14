@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 #[aoc_generator(day14)]
 fn parse(input: &str) -> String {
     input.to_owned()
@@ -10,21 +8,17 @@ struct Recipes {
     elf1: usize,
     elf2: usize,
     target: Option<Vec<u8>>,
-    recent_recipes: VecDeque<u8>,
 }
 
 impl Recipes {
     fn new(capacity: usize) -> Self {
         let mut recipes = Vec::with_capacity(capacity);
-        let mut recent = VecDeque::with_capacity(6);
         recipes.extend(&[3, 7]);
-        recent.extend(&[3, 7]);
         Recipes {
             recipes,
             elf1: 0,
             elf2: 1,
             target: None,
-            recent_recipes: recent,
         }
     }
 
@@ -47,19 +41,16 @@ impl Recipes {
     fn add_recipe(&mut self, recipe: u8) -> bool {
         self.recipes.push(recipe);
         if let Some(target) = &self.target {
-            if self.recent_recipes.len() >= target.len() {
-                self.recent_recipes.pop_front();
-            }
-            self.recent_recipes.push_back(recipe);
-            for i in 0..target.len() {
-                if target[i] != self.recent_recipes[i] {
-                    return false;
+            if self.recipes.len() >= target.len() {
+                for i in 0..target.len() {
+                    if target[i] != self.recipes[self.recipes.len() - target.len() + i] {
+                        return false;
+                    }
                 }
+                return true;
             }
-            true
-        } else {
-            false
         }
+        false
     }
 
     fn next_index(&self, cur: usize) -> usize {
