@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 #[aoc_generator(day14)]
 fn parse(input: &str) -> String {
     input.to_owned()
@@ -5,28 +7,29 @@ fn parse(input: &str) -> String {
 
 struct Recipes {
     recipes: Vec<u8>,
-    indexes: Vec<usize>,
-    target: Option<usize>,
-    input_len: usize,
-    recent_recipes: usize,
+    elf1: usize,
+    elf2: usize,
+    target: Option<Vec<u8>>,
+    recent_recipes: VecDeque<u8>,
 }
 
 impl Recipes {
     fn new(capacity: usize) -> Self {
-        let mut recipes: Vec<u8> = Vec::with_capacity(capacity);
-        recipes.extend([3, 7].iter());
-        let indexes: Vec<usize> = vec![0, 1];
+        let mut recipes = Vec::with_capacity(capacity);
+        let mut recent = VecDeque::with_capacity(6);
+        recipes.extend(&[3, 7]);
+        recent.extend(&[3, 7]);
         Recipes {
             recipes,
-            indexes,
+            elf1: 0,
+            elf2: 1,
             target: None,
-            input_len: 10000,
-            recent_recipes: 37,
+            recent_recipes: recent,
         }
     }
 
     fn cook(&mut self) -> bool {
-        let mut sum: u8 = self.indexes.iter().map(|&i| self.recipes[i]).sum();
+        let mut sum = self.recipes[self.elf1] + self.recipes[self.elf2];
         if sum >= 10 {
             if self.add_recipe(1) {
                 return true;
@@ -36,23 +39,36 @@ impl Recipes {
         if self.add_recipe(sum) {
             return true;
         }
-        for i in 0..self.indexes.len() {
-            self.indexes[i] = self.indexes[i] + usize::from(self.recipes[self.indexes[i]]) + 1;
-            if self.indexes[i] >= self.recipes.len() {
-                self.indexes[i] = self.indexes[i] % self.recipes.len();
-            }
-        }
+        self.elf1 = self.next_index(self.elf1);
+        self.elf2 = self.next_index(self.elf2);
         false
     }
 
     fn add_recipe(&mut self, recipe: u8) -> bool {
         self.recipes.push(recipe);
-        if let Some(target) = self.target {
-            self.recent_recipes = (self.recent_recipes % self.input_len) * 10 + recipe as usize;
-            target == self.recent_recipes
+        if let Some(target) = &self.target {
+            if self.recent_recipes.len() >= target.len() {
+                self.recent_recipes.pop_front();
+            }
+            self.recent_recipes.push_back(recipe);
+            for i in 0..target.len() {
+                if target[i] != self.recent_recipes[i] {
+                    return false;
+                }
+            }
+            true
         } else {
             false
         }
+    }
+
+    fn next_index(&self, cur: usize) -> usize {
+        let mut val = cur;
+        val = val + usize::from(self.recipes[val]) + 1;
+        if val >= self.recipes.len() {
+            val = val % self.recipes.len();
+        }
+        val
     }
 }
 
@@ -72,10 +88,8 @@ fn solve_part1(input_str: &str) -> String {
 
 #[aoc(day14, part2)]
 fn solve_part2(input_str: &str) -> usize {
-    let input = input_str.trim().parse::<usize>().unwrap();
-    let mut recipes = Recipes::new(input);
-    recipes.target = Some(input);
-    recipes.input_len = 10usize.pow(input_str.len() as u32 - 1);
+    let mut recipes = Recipes::new(22_000_000);
+    recipes.target = Some(input_str.chars().map(|ch| (ch as u8) - b'0').collect());
     while !recipes.cook() {}
     recipes.recipes.len() - input_str.len()
 }
