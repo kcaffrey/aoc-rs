@@ -186,54 +186,6 @@ impl Direction {
     }
 }
 
-impl std::fmt::Display for Position {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{},{}", self.x, self.y)
-    }
-}
-
-impl std::fmt::Display for Track {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        for y in 0..self.track.len() {
-            for x in 0..self.track[y].len() {
-                if let Some(direction) = self.positions.get(&Position { x, y }) {
-                    write!(
-                        f,
-                        "{}",
-                        match direction {
-                            Direction::Up => '^',
-                            Direction::Right => '>',
-                            Direction::Down => 'v',
-                            Direction::Left => '<',
-                        }
-                    )?;
-                } else {
-                    write!(f, "{}", self.track[y][x])?;
-                }
-            }
-            writeln!(f)?;
-        }
-        Ok(())
-    }
-}
-
-impl std::fmt::Display for Path {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Path::Horizontal => '-',
-                Path::Vertical => '|',
-                Path::CurveLeft => '\\',
-                Path::CurveRight => '/',
-                Path::Intersection => '+',
-                Path::Empty => ' ',
-            }
-        )
-    }
-}
-
 impl Ord for Cart {
     fn cmp(&self, other: &Cart) -> Ordering {
         match self.position.y.cmp(&other.position.y) {
@@ -246,6 +198,12 @@ impl Ord for Cart {
 impl PartialOrd for Cart {
     fn partial_cmp(&self, other: &Cart) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl std::fmt::Display for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{},{}", self.x, self.y)
     }
 }
 
