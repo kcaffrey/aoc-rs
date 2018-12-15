@@ -41,16 +41,10 @@ impl Recipes {
     fn add_recipe(&mut self, recipe: u8) -> bool {
         self.recipes.push(recipe);
         if let Some(target) = &self.target {
-            if self.recipes.len() >= target.len() {
-                for i in 0..target.len() {
-                    if target[i] != self.recipes[self.recipes.len() - target.len() + i] {
-                        return false;
-                    }
-                }
-                return true;
-            }
+            self.recipes.ends_with(target)
+        } else {
+            false
         }
-        false
     }
 
     fn next_index(&self, cur: usize) -> usize {
