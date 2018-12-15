@@ -23,7 +23,8 @@ impl Recipes {
     }
 
     fn cook(&mut self) -> bool {
-        let mut sum = self.recipes[self.elf1] + self.recipes[self.elf2];
+        let (val1, val2) = (self.recipes[self.elf1], self.recipes[self.elf2]);
+        let mut sum = val1 + val2;
         if sum >= 10 {
             if self.add_recipe(1) {
                 return true;
@@ -33,8 +34,8 @@ impl Recipes {
         if self.add_recipe(sum) {
             return true;
         }
-        self.elf1 = self.next_index(self.elf1);
-        self.elf2 = self.next_index(self.elf2);
+        self.elf1 = self.next_index(self.elf1, val1);
+        self.elf2 = self.next_index(self.elf2, val2);
         false
     }
 
@@ -47,9 +48,8 @@ impl Recipes {
         }
     }
 
-    fn next_index(&self, cur: usize) -> usize {
-        let mut val = cur;
-        val = val + usize::from(self.recipes[val]) + 1;
+    fn next_index(&self, elf: usize, cur: u8) -> usize {
+        let mut val = elf + usize::from(cur) + 1;
         if val >= self.recipes.len() {
             val = val % self.recipes.len();
         }
