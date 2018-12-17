@@ -70,6 +70,8 @@ fn run_water(grid: &mut Grid) -> (u32, u32) {
     let mut queue = VecDeque::new();
     // There are two cases at the beginning - clay or sand immediately before the water.
     // If clay, we create two sources, otherwise just one.
+    // This is only necessary because we compute the counts as we go rather than tallying at the
+    // end.
     let sourcex = 500 - grid.offsetx;
     match grid.cells[0][sourcex] {
         Cell::Sand => {
@@ -77,19 +79,15 @@ fn run_water(grid: &mut Grid) -> (u32, u32) {
         }
         Cell::Clay => {
             let mut x = sourcex;
-            while x > 0 && grid.cells[0][x] == Cell::Clay {
+            while grid.cells[0][x] == Cell::Clay {
                 x -= 1;
             }
-            if grid.cells[0][x] == Cell::Sand {
-                queue.push_back(Coordinate { y: 0, x });
-            }
+            queue.push_back(Coordinate { y: 0, x });
             let mut x = sourcex;
-            while x < grid.cells[0].len() - 1 && grid.cells[0][x] == Cell::Clay {
+            while grid.cells[0][x] == Cell::Clay {
                 x += 1;
             }
-            if grid.cells[0][x] == Cell::Sand {
-                queue.push_back(Coordinate { y: 0, x });
-            }
+            queue.push_back(Coordinate { y: 0, x });
         }
         _ => unreachable!(),
     }
@@ -115,100 +113,51 @@ fn run_water(grid: &mut Grid) -> (u32, u32) {
             continue;
         }
 
-        // Floor will either be clay or water.
-        let mut floor = grid.cells[y][x];
-        debug_assert!(floor == Cell::Clay || floor == Cell::Water);
-        y -= 1;
+        let mut new_type = Cell::Water;
+        while new_type == Cell::Water && y > 0 {
+            y -= 1;
 
-        loop {
-            // If we hit clay or water, spread out to the left or right.
             // If we hit clay in both directions without encountering a hole, make water and move up.
-            // If we hit the edge in either direction, create wet sand instead
             // If we find a hole, create wet sand and create a source at the hole.
-            let mut x = source.x;
-            let minx;
-            let mut make_water = true;
-            loop {
-                if x == 0 {
-                    // Edge found.
-                    make_water = false;
-                    minx = 0;
-                    break;
-                }
-                x -= 1;
+            let spread_water = |startx, direction: isize| {
+                let mut x = startx;
+                loop {
+                    // First check to see if we hit a wall, in which case we know this direction is done.
+                    let nextx = (x as isize + direction) as usize;
+                    if grid.cells[y][nextx] == Cell::Clay {
+                        return (x, None);
+                    }
+                    x = nextx;
 
-                // First check to see if we hit a wall, in which case we know this direction is done.
-                if grid.cells[y][x] == Cell::Clay {
-                    minx = x + 1;
-                    break;
+                    // Now check for a hole - if the tile under us is not our expected floor,
+                    // make a source.
+                    if grid.cells[y + 1][x] != Cell::Water && grid.cells[y + 1][x] != Cell::Clay {
+                        return (x, Some(Coordinate { x, y: y + 1 }));
+                    }
                 }
+            };
+            let (minx, source_left) = spread_water(source.x, -1);
+            let (maxx, source_right) = spread_water(source.x, 1);
 
-                // Now check for a hole - if the tile under us is not our expected floor,
-                // make a source.
-                // NOTE: We know that we aren't at the bottom because of the check above,
-                // so it's safe to check one down.
-                // NOTE: Additionally, we will handle the edge cases of already being flowing water at
-                // the start of the main loop.
-                if grid.cells[y + 1][x] != floor && grid.cells[y + 1][x] != Cell::Clay {
-                    make_water = false;
-                    queue.push_back(Coordinate { x, y: y + 1 });
-                    minx = x;
-                    break;
-                }
-            }
-            let mut x = source.x;
-            let maxx;
-            loop {
-                if x == grid.cells[0].len() - 1 {
-                    // Edge found.
-                    make_water = false;
-                    maxx = x;
-                    break;
-                }
-                x += 1;
-
-                // First check to see if we hit a wall, in which case we know this direction is done.
-                if grid.cells[y][x] == Cell::Clay {
-                    maxx = x - 1;
-                    break;
-                }
-
-                // Now check for a hole - if the tile under us is not our expected floor,
-                // make a source.
-                // NOTE: We know that we aren't at the bottom because of the check above,
-                // so it's safe to check one down.
-                // NOTE: Additionally, we will handle the edge cases of already being flowing water at
-                // the start of the main loop.
-                if grid.cells[y + 1][x] != floor && grid.cells[y + 1][x] != Cell::Clay {
-                    make_water = false;
-                    queue.push_back(Coordinate { x, y: y + 1 });
-                    maxx = x;
-                    break;
+            // If we found a hole on either side, queue new sources and mark the row as running
+            // water.
+            for s in &[source_left, source_right] {
+                if let Some(s) = s {
+                    queue.push_back(*s);
+                    new_type = Cell::WetSand;
                 }
             }
 
+            // Fill in the row with the new water type.
             for x in minx..=maxx {
                 if grid.cells[y][x] == Cell::Sand {
                     tile_count += 1;
                 }
-                if grid.cells[y][x] != Cell::Water && make_water {
+                if grid.cells[y][x] != Cell::Water && new_type == Cell::Water {
                     water_count += 1;
                 }
-                grid.cells[y][x] = if make_water {
-                    Cell::Water
-                } else {
-                    Cell::WetSand
-                };
+                grid.cells[y][x] = new_type;
             }
-            if !make_water {
-                break;
-            }
-            floor = Cell::Water;
-
-            if y == 0 {
-                break;
-            }
-            y -= 1;
         }
     }
 
