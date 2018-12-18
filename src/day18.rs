@@ -32,13 +32,14 @@ impl Landscape {
         self.change_list.clear();
         for row in 0..self.rows {
             for col in 0..self.cols {
-                let next = match (self.acres[row][col], self.neighbor_counts[row][col]) {
+                let cur = self.acres[row][col];
+                let next = match (cur, self.neighbor_counts[row][col]) {
                     (Acre::Open, (trees, _)) if trees >= 3 => Acre::Trees,
                     (Acre::Trees, (_, yards)) if yards >= 3 => Acre::Lumberyard,
                     (Acre::Lumberyard, (trees, yards)) if trees < 1 || yards < 1 => Acre::Open,
                     (cur, _) => cur,
                 };
-                if next != self.acres[row][col] {
+                if next != cur {
                     self.change_list.push((row, col, next));
                 }
             }
