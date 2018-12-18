@@ -9,8 +9,9 @@ enum Acre {
 
 #[derive(Clone)]
 struct Landscape {
-    current: Vec<Vec<Acre>>,
-    next: Vec<Vec<Acre>>,
+    acres: Vec<Vec<Acre>>,
+    neighbor_counts: Vec<Vec<(u32, u32)>>,
+    change_list: Vec<(usize, usize, Acre)>,
     rows: usize,
     cols: usize,
 }
@@ -28,34 +29,47 @@ impl From<char> for Acre {
 
 impl Landscape {
     pub fn tick(&mut self) {
+        self.change_list.clear();
         for row in 0..self.rows {
             for col in 0..self.cols {
-                let (trees, lumberyards) = self.count_neighbors(row, col);
-                let next = match (self.current[row][col], trees, lumberyards) {
-                    (Acre::Open, trees, _) if trees >= 3 => Acre::Trees,
-                    (Acre::Trees, _, yards) if yards >= 3 => Acre::Lumberyard,
-                    (Acre::Lumberyard, trees, yards) if trees < 1 || yards < 1 => Acre::Open,
-                    (cur, _, _) => cur,
+                let cur = self.acres[row][col];
+                let neighbors = self.neighbor_counts[row][col];
+                let next = match (cur, neighbors) {
+                    (Acre::Open, (trees, _)) if trees >= 3 => Acre::Trees,
+                    (Acre::Trees, (_, yards)) if yards >= 3 => Acre::Lumberyard,
+                    (Acre::Lumberyard, (trees, yards)) if trees < 1 || yards < 1 => Acre::Open,
+                    (cur, _) => cur,
                 };
-                self.next[row][col] = next;
+                if next != cur {
+                    self.change_list.push((row, col, next));
+                }
             }
         }
-        std::mem::swap(&mut self.current, &mut self.next);
+        for &(row, col, next) in &self.change_list {
+            self.acres[row][col] = next;
+            for r in row.saturating_sub(1)..=row + 1 {
+                for c in col.saturating_sub(1)..=col + 1 {
+                    if r < self.rows && c < self.cols && (r != row || c != col) {
+                        self.neighbor_counts[r][c] = match (next, self.neighbor_counts[r][c]) {
+                            (Acre::Trees, (trees, yards)) => (trees + 1, yards),
+                            (Acre::Lumberyard, (trees, yards)) => (trees - 1, yards + 1),
+                            (Acre::Open, (trees, yards)) => (trees, yards - 1),
+                        };
+                    }
+                }
+            }
+        }
     }
 
-    fn count_neighbors(&self, row: usize, col: usize) -> (u32, u32) {
+    fn count_neighbors(grid: &Vec<Vec<Acre>>, row: usize, col: usize) -> (u32, u32) {
         let (mut trees, mut lumberyards) = (0, 0);
-        let (row, col): (isize, isize) = (row as isize, col as isize);
-        for drow in -1isize..=1 {
-            for dcol in -1isize..=1 {
-                if drow == 0 && dcol == 0 {
+        let (rows, cols) = (grid.len(), grid[0].len());
+        for r in row.saturating_sub(1)..=std::cmp::min(row + 1, rows - 1) {
+            for c in col.saturating_sub(1)..=std::cmp::min(col + 1, cols - 1) {
+                if r == row && c == col {
                     continue;
                 }
-                let (r, c) = (row + drow, col + dcol);
-                if r < 0 || r >= self.rows as isize || c < 0 || c >= self.cols as isize {
-                    continue;
-                }
-                match self.current[r as usize][c as usize] {
+                match grid[r][c] {
                     Acre::Trees => trees += 1,
                     Acre::Lumberyard => lumberyards += 1,
                     Acre::Open => {}
@@ -67,7 +81,7 @@ impl Landscape {
 
     fn resource_value(&self) -> u32 {
         let (mut trees, mut yards) = (0, 0);
-        for row in &self.current {
+        for row in &self.acres {
             for acre in row {
                 match acre {
                     Acre::Trees => trees += 1,
@@ -87,11 +101,19 @@ fn parse(input: &str) -> Box<Landscape> {
         .lines()
         .map(|line| line.chars().map(Acre::from).collect())
         .collect::<Vec<Vec<Acre>>>();
+    let (rows, cols) = (acres.len(), acres[0].len());
+    let mut neighbor_counts = vec![vec![(0, 0); cols]; rows];
+    for row in 0..rows {
+        for col in 0..cols {
+            neighbor_counts[row][col] = Landscape::count_neighbors(&acres, row, col);
+        }
+    }
     Box::new(Landscape {
-        next: acres.clone(),
-        rows: acres.len(),
-        cols: acres[0].len(),
-        current: acres,
+        change_list: Vec::with_capacity(rows * cols),
+        acres,
+        neighbor_counts,
+        rows,
+        cols,
     })
 }
 
@@ -143,7 +165,7 @@ fn solve_part2(landscape: &Landscape) -> u32 {
 use std::fmt::{self, Display, Formatter};
 impl Display for Landscape {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        for row in &self.current {
+        for row in &self.acres {
             for col in row {
                 let ch = match col {
                     Acre::Open => '.',
@@ -179,7 +201,7 @@ mod tests {
         let landscape = parse(EXAMPLE);
         use self::Acre::*;
         assert_eq!(
-            &landscape.current[0][..],
+            &landscape.acres[0][..],
             &[Open, Lumberyard, Open, Lumberyard, Open, Open, Open, Trees, Lumberyard, Open]
         );
     }
