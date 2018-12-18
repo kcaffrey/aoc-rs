@@ -1,4 +1,5 @@
-use std::collections::HashSet;
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Acre {
@@ -14,6 +15,8 @@ struct Landscape {
     change_list: Vec<(usize, usize, Acre)>,
     rows: usize,
     cols: usize,
+    trees: u32,
+    lumberyards: u32,
 }
 
 impl From<char> for Acre {
@@ -46,6 +49,14 @@ impl Landscape {
         }
         for &(row, col, next) in &self.change_list {
             self.acres[row][col] = next;
+            match next {
+                Acre::Trees => self.trees += 1,
+                Acre::Lumberyard => {
+                    self.trees -= 1;
+                    self.lumberyards += 1;
+                }
+                Acre::Open => self.lumberyards -= 1,
+            }
             for r in row.saturating_sub(1)..=row + 1 {
                 for c in col.saturating_sub(1)..=col + 1 {
                     if r < self.rows && c < self.cols && (r != row || c != col) {
@@ -78,17 +89,7 @@ impl Landscape {
     }
 
     fn resource_value(&self) -> u32 {
-        let (mut trees, mut yards) = (0, 0);
-        for row in &self.acres {
-            for acre in row {
-                match acre {
-                    Acre::Trees => trees += 1,
-                    Acre::Lumberyard => yards += 1,
-                    _ => {}
-                }
-            }
-        }
-        trees * yards
+        self.trees * self.lumberyards
     }
 }
 
@@ -106,12 +107,24 @@ fn parse(input: &str) -> Box<Landscape> {
             neighbor_counts[row][col] = Landscape::count_neighbors(&acres, row, col);
         }
     }
+    let trees = acres
+        .iter()
+        .flat_map(|r| r.iter())
+        .filter(|&a| a == &Acre::Trees)
+        .count() as u32;
+    let lumberyards = acres
+        .iter()
+        .flat_map(|r| r.iter())
+        .filter(|&a| a == &Acre::Lumberyard)
+        .count() as u32;
     Box::new(Landscape {
         change_list: Vec::with_capacity(rows * cols),
         acres,
         neighbor_counts,
         rows,
         cols,
+        trees,
+        lumberyards,
     })
 }
 
@@ -130,34 +143,30 @@ fn solve_part2(landscape: &Landscape) -> u32 {
 
     // Try to find a cycle (it's assumed that if a pair of resource values is seen twice, we have a
     // cycle. Not always true, but should be safe enough).
-    let mut seen: HashSet<(u32, u32)> = HashSet::new();
+    let mut seen: HashMap<(u32, u32), u32> = HashMap::new();
     let mut prev = landscape.resource_value();
     let mut cur;
-    let mut initial_length = 0;
+    let mut minute = 0u32;
+    let mut resource_values = Vec::with_capacity(1000);
     loop {
-        initial_length += 1;
+        minute += 1;
         landscape.tick();
         cur = landscape.resource_value();
-        if !seen.insert((cur, prev)) {
-            break;
+        resource_values.push(cur);
+        match seen.entry((cur, prev)) {
+            Entry::Vacant(entry) => {
+                entry.insert(minute);
+                resource_values.push(cur);
+            }
+            Entry::Occupied(entry) => {
+                let cycle_start = entry.get();
+                let cycle_length = minute - cycle_start;
+                let cycle_index = (1_000_000_000 - cycle_start) % cycle_length + cycle_length;
+                return resource_values[cycle_index as usize];
+            }
         }
         prev = cur;
     }
-
-    // Now find the cycle length by looping until the first element in the cycle is reached again.
-    let mut cycle = vec![landscape.resource_value()];
-    landscape.tick();
-    loop {
-        let resource_value = landscape.resource_value();
-        if resource_value == cycle[0] {
-            break;
-        }
-        cycle.push(resource_value);
-        landscape.tick();
-    }
-
-    // Return the resource value in the cycle for the billionth iteration.
-    cycle[(1_000_000_000 - initial_length) % cycle.len()]
 }
 
 use std::fmt::{self, Display, Formatter};
