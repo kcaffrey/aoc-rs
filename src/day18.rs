@@ -32,15 +32,13 @@ impl Landscape {
         self.change_list.clear();
         for row in 0..self.rows {
             for col in 0..self.cols {
-                let cur = self.acres[row][col];
-                let neighbors = self.neighbor_counts[row][col];
-                let next = match (cur, neighbors) {
+                let next = match (self.acres[row][col], self.neighbor_counts[row][col]) {
                     (Acre::Open, (trees, _)) if trees >= 3 => Acre::Trees,
                     (Acre::Trees, (_, yards)) if yards >= 3 => Acre::Lumberyard,
                     (Acre::Lumberyard, (trees, yards)) if trees < 1 || yards < 1 => Acre::Open,
                     (cur, _) => cur,
                 };
-                if next != cur {
+                if next != self.acres[row][col] {
                     self.change_list.push((row, col, next));
                 }
             }
@@ -63,9 +61,8 @@ impl Landscape {
 
     fn count_neighbors(grid: &Vec<Vec<Acre>>, row: usize, col: usize) -> (u32, u32) {
         let (mut trees, mut lumberyards) = (0, 0);
-        let (rows, cols) = (grid.len(), grid[0].len());
-        for r in row.saturating_sub(1)..=std::cmp::min(row + 1, rows - 1) {
-            for c in col.saturating_sub(1)..=std::cmp::min(col + 1, cols - 1) {
+        for r in row.saturating_sub(1)..=std::cmp::min(row + 1, grid.len() - 1) {
+            for c in col.saturating_sub(1)..=std::cmp::min(col + 1, grid[0].len() - 1) {
                 if r == row && c == col {
                     continue;
                 }
