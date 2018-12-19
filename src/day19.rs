@@ -35,19 +35,26 @@ struct CPU {
     ip: usize,
     ip_reg: usize,
     program: Vec<Instruction>,
+    break_on_eqrr: bool,
 }
 
 impl CPU {
-    pub fn tick(&mut self) -> bool {
+    pub fn tick(&mut self) -> Option<u32> {
         if self.ip >= self.program.len() {
-            return false;
+            return Some(self.registers[0]);
         }
         self.registers[self.ip_reg] = self.ip as u32;
         let inst = self.program[self.ip];
+
+        // part 2 nonsense
+        if let Some(factor_sum) = self.part2_pattern_match(inst) {
+            return Some(factor_sum);
+        }
+
         self.execute(inst);
         self.ip = self.registers[self.ip_reg] as usize;
         self.ip += 1;
-        true
+        None
     }
 
     fn execute(&mut self, instruction: Instruction) {
@@ -75,6 +82,36 @@ impl CPU {
             }
         };
         c.write(self, out_value);
+    }
+
+    fn part2_pattern_match(&self, instruction: Instruction) -> Option<u32> {
+        if !self.break_on_eqrr {
+            return None;
+        }
+
+        // There will only ever be 1 "eqrr" instruction - the larger register value will be the
+        // number to factor.
+        use self::{Operation::*, Parameter::*};
+        if let Instruction {
+            operation: Equals,
+            a: Register(a),
+            b: Register(b),
+            ..
+        } = instruction
+        {
+            let mut sum = 0u32;
+            let num = std::cmp::max(self.registers[a as usize], self.registers[b as usize]);
+            let mut i = 1;
+            while i * i <= num {
+                if num % i == 0 {
+                    sum += i;
+                    sum += num / i;
+                }
+                i += 1;
+            }
+            return Some(sum);
+        }
+        None
     }
 }
 
@@ -113,24 +150,30 @@ fn parse(input: &str) -> Box<CPU> {
         ip: 0,
         ip_reg,
         program,
+        break_on_eqrr: false,
     })
 }
 
 #[aoc(day19, part1)]
 fn solve_part1(cpu: &CPU) -> u32 {
     let mut cpu = cpu.clone();
-    while cpu.tick() {}
-    cpu.registers[0]
+    loop {
+        if let Some(val) = cpu.tick() {
+            return val;
+        }
+    }
 }
 
 #[aoc(day19, part2)]
-fn solve_part2(_cpu: &CPU) -> u32 {
-    // let mut cpu = cpu.clone();
-    // cpu.registers[0] = 1;
-    // while cpu.tick() {}
-    // cpu.registers[0]
-    // Manually inspected the assembly, its the sum of the factors of 10551417
-    1 + 10_551_417 + 3 + 3_517_139
+fn solve_part2(cpu: &CPU) -> u32 {
+    let mut cpu = cpu.clone();
+    cpu.registers[0] = 1;
+    cpu.break_on_eqrr = true;
+    loop {
+        if let Some(val) = cpu.tick() {
+            return val;
+        }
+    }
 }
 
 impl FromStr for Instruction {
