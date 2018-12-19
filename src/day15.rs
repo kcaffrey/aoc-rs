@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
+use std::collections::hash_map::Entry;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
-use std::collections::HashSet;
 
 type Coordinate = crate::coordinate::Coordinate<usize>;
 
@@ -156,8 +156,8 @@ impl Cave {
         type Distance = usize;
         type FirstMove = Coordinate;
         let mut open: BinaryHeap<Reverse<(Distance, Coordinate, FirstMove)>> = BinaryHeap::new();
-        let mut closed = HashSet::new();
-        closed.insert(coord);
+        let mut visited = HashMap::new();
+        visited.insert(coord, (0, coord));
         for neighbor in self.neighbors(coord) {
             if let Cell::Unit(other_kind) = self.cells[neighbor.y][neighbor.x] {
                 if kind != other_kind {
@@ -166,22 +166,35 @@ impl Cave {
                 }
             } else if self.cells[neighbor.y][neighbor.x] == Cell::Empty {
                 open.push(Reverse((1, neighbor, neighbor)));
-                closed.insert(neighbor);
+                visited.insert(neighbor, (1, neighbor));
             }
         }
         while let Some(Reverse((distance, next_coord, first_move))) = open.pop() {
+            if let Cell::Unit(other_kind) = self.cells[next_coord.y][next_coord.x] {
+                if kind != other_kind {
+                    // We found a reachable unit of the other kind, so return the first move in that direction.
+                    return Some(first_move);
+                }
+            }
             for neighbor in self.neighbors(next_coord) {
-                if closed.contains(&neighbor) {
+                let skip = match visited.entry(neighbor) {
+                    Entry::Vacant(_) => false,
+                    Entry::Occupied(ref entry) => {
+                        let (existing_distance, existing_first_move) = entry.get();
+                        distance > *existing_distance || first_move >= *existing_first_move
+                    }
+                };
+                if skip {
                     continue;
                 }
-                if let Cell::Unit(other_kind) = self.cells[neighbor.y][neighbor.x] {
-                    if kind != other_kind {
-                        // We found a reachable unit of the other kind, so return the first move in that direction.
-                        return Some(first_move);
-                    }
-                } else if self.cells[neighbor.y][neighbor.x] == Cell::Empty {
+                let explore = match self.cells[neighbor.y][neighbor.x] {
+                    Cell::Empty => true,
+                    Cell::Unit(other_kind) if kind != other_kind => true,
+                    _ => false,
+                };
+                if explore {
                     open.push(Reverse((distance + 1, neighbor, first_move)));
-                    closed.insert(neighbor);
+                    visited.insert(neighbor, (distance + 1, first_move));
                 }
             }
         }
