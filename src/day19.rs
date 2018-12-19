@@ -47,8 +47,8 @@ impl CPU {
         let inst = self.program[self.ip];
 
         // part 2 nonsense
-        if let Some(factor_sum) = self.part2_pattern_match(inst) {
-            return Some(factor_sum);
+        if let Some(divisor_sum) = self.divisor_sum_pattern_match(inst) {
+            return Some(divisor_sum);
         }
 
         self.execute(inst);
@@ -84,7 +84,7 @@ impl CPU {
         c.write(self, out_value);
     }
 
-    fn part2_pattern_match(&self, instruction: Instruction) -> Option<u32> {
+    fn divisor_sum_pattern_match(&self, instruction: Instruction) -> Option<u32> {
         if !self.break_on_eqrr {
             return None;
         }
@@ -157,6 +157,7 @@ fn parse(input: &str) -> Box<CPU> {
 #[aoc(day19, part1)]
 fn solve_part1(cpu: &CPU) -> u32 {
     let mut cpu = cpu.clone();
+    cpu.break_on_eqrr = true;
     loop {
         if let Some(val) = cpu.tick() {
             return val;
