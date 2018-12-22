@@ -1,11 +1,26 @@
 use std::cmp::Ordering;
 use std::fmt::{self, Display, Formatter};
-use std::ops::Add;
+use std::ops::{Add, AddAssign};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Coordinate<T> {
     pub x: T,
     pub y: T,
+}
+
+impl<T> Coordinate<T> {
+    pub fn new(x: T, y: T) -> Self {
+        Coordinate { x, y }
+    }
+}
+
+impl<T: Default> Default for Coordinate<T> {
+    fn default() -> Self {
+        Coordinate {
+            x: Default::default(),
+            y: Default::default(),
+        }
+    }
 }
 
 impl<T: Add<Output = T>> Add for Coordinate<T> {
@@ -16,6 +31,13 @@ impl<T: Add<Output = T>> Add for Coordinate<T> {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
         }
+    }
+}
+
+impl<T: AddAssign> AddAssign for Coordinate<T> {
+    fn add_assign(&mut self, rhs: Self) {
+        self.x += rhs.x;
+        self.y += rhs.y;
     }
 }
 
