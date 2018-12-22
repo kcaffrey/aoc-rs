@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 #[aoc_generator(day20)]
 fn parse(input: &str) -> Vec<u8> {
@@ -52,14 +52,15 @@ fn build_map(pattern: &[u8]) -> Map {
 
 fn build_distances(map: &Map) -> HashMap<Point, u32> {
     let mut distances = HashMap::new();
-    let mut queue = vec![(Point::new(0, 0), 0)];
+    let mut queue = VecDeque::new();
     let mut visited = HashSet::new();
+    queue.push_back((Point::new(0, 0), 0));
     visited.insert(Point::new(0, 0));
-    while let Some((cur, distance)) = queue.pop() {
+    while let Some((cur, distance)) = queue.pop_front() {
         distances.insert(cur, distance);
         for neighbor in map.neighbors(cur) {
             if visited.insert(neighbor) {
-                queue.push((neighbor, distance + 1));
+                queue.push_back((neighbor, distance + 1));
             }
         }
     }
